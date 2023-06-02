@@ -1,32 +1,25 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as fs from 'fs'
-const fetch = require('node-fetch')
 
-const s3Bucket = new aws.s3.Bucket('s3Bucket', {
-  acl: 'private',
+// Create an S3 bucket
+const myBucket = new aws.s3.Bucket('myBucket', {
   tags: {
-    Name: 'My bucket'
+    version: '0.1'
   }
 })
 
-async function getBtcPrice (): Promise<string> {
-  const response = await fetch(
-    'https://api.coindesk.com/v1/bpi/currentprice.json'
-  )
-  const data = await response.json()
-  return JSON.stringify(data)
-}
+// Upload a static txt file with the text "hello world" inside
+const myBucketObject = new aws.s3.BucketObject('myBucketObject', {
+  bucket: myBucket.id,
+  key: 'hello-world.txt',
+  content: 'hello world 1',
+  contentType: 'text/plain',
+  tags: {
+    version: '0.1'
+  }
+})
 
-async function main () {
-  const btcPriceInfo = await getBtcPrice()
-  fs.writeFileSync('currentBtcPrices.json', btcPriceInfo)
-
-  const currentBtcPrices = new aws.s3.BucketObject('currentBtcPrices', {
-    bucket: s3Bucket,
-    key: 'currentBtcPrices.json',
-    source: new pulumi.asset.FileAsset('currentBtcPrices.json')
-  })
-}
-
-main()
+// Export the bucket name and object URL
+export const bucketName = myBucket.id
+export const bucketObjectUrl = pulumi.interpolate`https://${myBucket.websiteDomain}/${myBucketObject.key}`
